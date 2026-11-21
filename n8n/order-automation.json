@@ -1,0 +1,44 @@
+{
+  "name": "NOVA Commerce Automation",
+  "nodes": [
+    {
+      "parameters": { "httpMethod": "POST", "path": "nova-commerce-events", "responseMode": "lastNode" },
+      "id": "webhook",
+      "name": "Commerce Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 300],
+      "webhookId": "nova-commerce-events"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            { "conditions": { "options": {}, "conditions": [{ "leftValue": "={{ $json.event }}", "rightValue": "payment.paid", "operator": { "type": "string", "operation": "equals" } }] } },
+            { "conditions": { "options": {}, "conditions": [{ "leftValue": "={{ $json.event }}", "rightValue": "order.created", "operator": { "type": "string", "operation": "equals" } }] } }
+          ]
+        }
+      },
+      "id": "switch",
+      "name": "Route Event",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [480, 300]
+    },
+    {
+      "parameters": { "respondWith": "json", "responseBody": "={{ { ok: true, event: $json.event, automated: true } }}" },
+      "id": "response",
+      "name": "Automation Acknowledged",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [700, 300]
+    }
+  ],
+  "connections": {
+    "Commerce Webhook": { "main": [[{ "node": "Route Event", "type": "main", "index": 0 }]] },
+    "Route Event": { "main": [[{ "node": "Automation Acknowledged", "type": "main", "index": 0 }], [{ "node": "Automation Acknowledged", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "1"
+}

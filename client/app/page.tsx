@@ -1,69 +1,100 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState } from "react";
+
+type Product = { id: number; name: string; slug: string; price: number; category: string; image: string; description: string };
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const rupiah = (value: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value);
 
 export default function Home() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [cart, setCart] = useState<Record<number, number>>({});
+  const [showCart, setShowCart] = useState(false);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/products`).then((r) => r.json()).then(setProducts).catch(() => setMessage("Tidak dapat terhubung ke API"));
+  }, []);
+
+  const count = Object.values(cart).reduce((sum, quantity) => sum + quantity, 0);
+  const total = products.reduce((sum, product) => sum + product.price * (cart[product.id] || 0), 0);
+
+  async function checkout(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const items = products.filter((product) => cart[product.id]).map((product) => ({
+      sku: product.slug,
+      name: product.name,
+      price: product.price,
+      quantity: cart[product.id],
+    }));
+    const response = await fetch(`${API_URL}/api/orders`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        customerName: form.get("name"),
+        customerEmail: form.get("email"),
+        customerPhone: form.get("phone"),
+        items,
+      }),
+    });
+    const order = await response.json();
+    if (!response.ok) return setMessage(order.message || "Checkout gagal");
+    if (order.checkoutUrl) window.location.href = order.checkoutUrl;
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main>
+      <nav className="nav">
+        <a className="brand" href="/">NOVA<span>.</span></a>
+        <div className="nav-links"><a href="#shop">Shop</a><a href="#about">About</a><a href="/admin">CMS</a></div>
+        <button className="bag" onClick={() => setShowCart(true)}>Bag <b>{count}</b></button>
+      </nav>
+
+      <section className="hero" id="about">
+        <div>
+          <p className="eyebrow">NEW SEASON · 2026</p>
+          <h1>Objects for<br /><em>everyday</em> life.</h1>
+          <p className="hero-copy">A considered collection of modern essentials, made with honest materials and quiet purpose.</p>
+          <a className="primary" href="#shop">Explore collection <span>→</span></a>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="hero-image" role="img" aria-label="Modern fashion collection">
+          <span>01 / 04</span>
         </div>
-      </main>
-    </div>
+      </section>
+
+      <section className="shop" id="shop">
+        <div className="section-head"><div><p className="eyebrow">CURATED FOR YOU</p><h2>New arrivals</h2></div><p>{products.length} products</p></div>
+        {message && <p className="notice">{message}</p>}
+        <div className="product-grid">
+          {products.map((product) => (
+            <article className="product" key={product.id}>
+              <div className="product-image"><img src={product.image} alt={product.name} /><button onClick={() => setCart((c) => ({ ...c, [product.id]: (c[product.id] || 0) + 1 }))}>Add to bag</button></div>
+              <div className="product-meta"><div><p>{product.category}</p><h3>{product.name}</h3></div><strong>{rupiah(product.price)}</strong></div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {showCart && (
+        <div className="cart-backdrop" onMouseDown={() => setShowCart(false)}>
+          <aside className="cart" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="cart-head"><h2>Your bag</h2><button onClick={() => setShowCart(false)}>×</button></div>
+            {count === 0 ? <p className="empty">Your bag is empty.</p> : (
+              <>
+                {products.filter((p) => cart[p.id]).map((p) => <div className="cart-row" key={p.id}><img src={p.image} alt="" /><div><b>{p.name}</b><small>{rupiah(p.price)}</small></div><button onClick={() => setCart((c) => ({ ...c, [p.id]: Math.max(0, c[p.id] - 1) }))}>−</button><span>{cart[p.id]}</span><button onClick={() => setCart((c) => ({ ...c, [p.id]: c[p.id] + 1 }))}>+</button></div>)}
+                <form className="checkout" onSubmit={checkout}>
+                  <input name="name" placeholder="Nama lengkap" required />
+                  <input name="email" type="email" placeholder="Email" required />
+                  <input name="phone" placeholder="Nomor telepon" required />
+                  <div className="total"><span>Total</span><strong>{rupiah(total)}</strong></div>
+                  <button className="pay" type="submit">Proceed to payment</button>
+                </form>
+              </>
+            )}
+          </aside>
+        </div>
+      )}
+    </main>
   );
 }
