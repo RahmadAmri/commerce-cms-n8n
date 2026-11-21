@@ -46,6 +46,7 @@ This project does not require Docker. Install PostgreSQL natively, create the da
 cd server
 npm run db:create
 npm run db:migrate
+npm run db:seed
 ```
 
 The API opens in demo mode when PostgreSQL is unavailable, so the storefront can still be run locally.
@@ -109,6 +110,12 @@ Set `API_PUBLIC_URL=https://YOUR-NGROK-DOMAIN.ngrok-free.app` in `server/.env`, 
 Without credentials, checkout redirects to `/api/payments/mock/:reference`, where payment can be simulated and redirects back to the store.
 
 ## n8n setup
+
+Run n8n locally without Docker:
+
+```bash
+npx n8n
+```
 
 1. Open n8n at `http://localhost:5678`.
 2. Import `n8n/order-automation.json`.

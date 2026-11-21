@@ -14,7 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "NOVA — Modern Commerce",
-  description: "A modern commerce storefront with CMS and Tripay payment integration.",
+  description:
+    "A modern commerce storefront with CMS and Tripay payment integration.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
