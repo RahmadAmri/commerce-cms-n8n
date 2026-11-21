@@ -6,7 +6,10 @@ import { useSearchParams } from "next/navigation";
 
 function OrderConfirmation() {
   const params = useSearchParams();
-  const reference = params.get("paid");
+  const reference =
+    params.get("paid") ||
+    params.get("tripay_merchant_ref") ||
+    params.get("reference");
 
   return (
     <main className="orders-page">
